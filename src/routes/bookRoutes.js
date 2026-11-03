@@ -4,6 +4,8 @@ const {
   getAllBooks,
   getBookById,
   createBook,
+  updateBook,
+  deleteBook,
 } = require("../controllers/bookController");
 
 const requireAuth = require("../middleware/requireAuth");
@@ -16,3 +18,7 @@ router.get("/:id", getBookById);
 router.post("/", requireAuth, createBook);
 
 module.exports = router;
+
+router.patch("/:id", requireAuth, updateBook);
+
+router.delete("/:id", requireAuth, deleteBook);

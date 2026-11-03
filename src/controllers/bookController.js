@@ -194,9 +194,144 @@ const createBook = async (req, res) => {
   });
 };
 
+const updateBook = async (req, res) => {
+  const { id } = req.params;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid book ID.",
+    });
+  }
+
+  const { fields, error } = validateBookFields(req.body, true);
+
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error,
+    });
+  }
+
+  if (Object.keys(fields).length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "No valid fields provided.",
+    });
+  }
+
+  const database = getDB();
+  const bookId = new ObjectId(id);
+
+  const existingBook = await database.collection("books").findOne({
+    _id: bookId,
+    "addedBy.userId": req.user.id,
+  });
+
+  if (!existingBook) {
+    return res.status(404).json({
+      success: false,
+      message: "Book not found or access denied.",
+    });
+  }
+
+  if (fields.totalCopies !== undefined) {
+    const activeBorrows = await database
+      .collection("borrows")
+      .countDocuments({
+        bookId,
+        status: "borrowed",
+      });
+
+    if (fields.totalCopies < activeBorrows) {
+      return res.status(409).json({
+        success: false,
+        message: "Total copies cannot be less than active borrows.",
+      });
+    }
+
+    fields.availableCopies = fields.totalCopies - activeBorrows;
+  }
+
+  fields.updatedAt = new Date();
+
+  await database.collection("books").updateOne(
+    {
+      _id: bookId,
+      "addedBy.userId": req.user.id,
+    },
+    {
+      $set: fields,
+    }
+  );
+
+  const updatedBook = await database.collection("books").findOne({
+    _id: bookId,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Book updated successfully.",
+    data: updatedBook,
+  });
+};
+
+const deleteBook = async (req, res) => {
+  const { id } = req.params;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid book ID.",
+    });
+  }
+
+  const database = getDB();
+  const bookId = new ObjectId(id);
+
+  const existingBook = await database.collection("books").findOne({
+    _id: bookId,
+    "addedBy.userId": req.user.id,
+  });
+
+  if (!existingBook) {
+    return res.status(404).json({
+      success: false,
+      message: "Book not found or access denied.",
+    });
+  }
+
+  const activeBorrows = await database
+    .collection("borrows")
+    .countDocuments({
+      bookId,
+      status: "borrowed",
+    });
+
+  if (activeBorrows > 0) {
+    return res.status(409).json({
+      success: false,
+      message: "Cannot delete a book that is currently borrowed.",
+    });
+  }
+
+  await database.collection("books").deleteOne({
+    _id: bookId,
+    "addedBy.userId": req.user.id,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Book deleted successfully.",
+  });
+};
+
+
 module.exports = {
   getAllBooks,
   getBookById,
   createBook,
+  updateBook,
+  deleteBook,
   validateBookFields,
 };
