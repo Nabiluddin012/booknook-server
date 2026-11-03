@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 
 const bookRoutes = require("./routes/bookRoutes");
+const borrowRoutes = require("./routes/borrowRoutes");
+
 const notFound = require("./middleware/notFound");
 const errorHandler = require("./middleware/errorHandler");
 
@@ -40,6 +42,8 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/books", bookRoutes);
+
+app.use("/borrows", borrowRoutes);
 
 app.use(notFound);
 
