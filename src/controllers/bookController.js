@@ -105,9 +105,22 @@ const getAllBooks = async (req, res) => {
     });
   }
 
+  const filter = {};
+
+  if (req.query.mine === "true") {
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required.",
+      });
+    }
+
+    filter["addedBy.userId"] = req.user.id;
+  }
+
   let query = database
     .collection("books")
-    .find({})
+    .find(filter)
     .sort({ createdAt: -1, _id: -1 });
 
   if (limit) {
