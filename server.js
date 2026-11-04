@@ -11,7 +11,7 @@ const startServer = async () => {
     await connectDB();
     await createIndexes();
 
-    app.listen(PORT, () => {
+    app.listen(PORT,"0.0.0.0", () => {
       console.log(`BookNook Server running on port ${PORT}`);
     });
   } catch (error) {
